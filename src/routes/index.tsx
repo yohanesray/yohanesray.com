@@ -1,23 +1,78 @@
 import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { Resend } from 'resend'
+
+declare const process: any
+
+// Server function running securely on the backend (Vercel serverless)
+const sendNotificationEmail = createServerFn({ method: 'POST' })
+  .inputValidator((email: unknown) => {
+    if (typeof email !== 'string' || !email.includes('@')) {
+      throw new Error('Invalid email address')
+    }
+    return email
+  })
+  .handler(async ({ data: email }) => {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      console.error('RESEND_API_KEY is not defined in environment variables')
+      return { success: false, error: 'Server misconfiguration' }
+    }
+
+    const resend = new Resend(apiKey)
+
+    try {
+      const { error } = await resend.emails.send({
+        from: 'Yohanes Ray <me@mail.yohanesray.com>',
+        to: email,
+        subject: 'Thank you for connecting!',
+        text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (err: any) {
+      console.error('Error sending email:', err)
+      return { success: false, error: err.message || 'Failed to send email' }
+    }
+  })
 
 export const Route = createFileRoute('/')({ component: RouteComponent })
 
 function RouteComponent() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
+    if (!email || loading) return
 
-    setSubmitted(true)
-    setEmail('')
+    setLoading(true)
+    try {
+      const res = await sendNotificationEmail({ data: email })
 
-    // Reset success message after 4 seconds
-    setTimeout(() => {
-      setSubmitted(false)
-    }, 4000)
+      if (res.success) {
+        setSubmitted(true)
+        setEmail('')
+
+        // Reset success message after 4 seconds
+        setTimeout(() => {
+          setSubmitted(false)
+        }, 4000)
+      } else {
+        alert(`Failed to send email: ${res.error}`)
+      }
+    } catch (error: any) {
+      console.error('Submission error:', error)
+      alert('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -56,19 +111,23 @@ function RouteComponent() {
               type="email"
               placeholder="Email address"
               required
+              disabled={loading || submitted}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-9 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors"
+              className="h-9 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors disabled:opacity-50"
             />
             <button
               type="submit"
-              className={`h-9 rounded-lg px-4 text-sm font-semibold transition-all duration-300 cursor-pointer ${
+              disabled={loading || submitted}
+              className={`h-9 rounded-lg px-4 text-sm font-semibold transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 submitted
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-zinc-100 text-zinc-950 hover:bg-zinc-200'
+                  : loading
+                    ? 'bg-zinc-700 text-zinc-300'
+                    : 'bg-zinc-100 text-zinc-950 hover:bg-zinc-200'
               }`}
             >
-              {submitted ? 'Sent' : 'Notify'}
+              {loading ? 'Sending...' : submitted ? 'Sent' : 'Notify'}
             </button>
           </form>
         </div>
