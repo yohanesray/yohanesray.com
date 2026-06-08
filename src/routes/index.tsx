@@ -41,6 +41,42 @@ const sendNotificationEmail = createServerFn({ method: 'POST' })
     }
   })
 
+const sendBulkEmails = createServerFn({ method: 'POST' }).handler(async () => {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.error('RESEND_API_KEY is not defined in environment variables')
+    return { success: false, error: 'Server misconfiguration' }
+  }
+
+  const resend = new Resend(apiKey)
+
+  try {
+    const { error } = await resend.batch.send([
+      {
+        from: 'Yohanes Ray <me@mail.yohanesray.com>',
+        to: 'annessilitonga21@gmail.com',
+        subject: 'Thank you for connecting!',
+        text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
+      },
+      {
+        from: 'Yohanes Ray <me@mail.yohanesray.com>',
+        to: 'febri@shorj.com',
+        subject: 'Thank you for connecting!',
+        text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
+      },
+    ])
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    console.error('Error sending batch emails:', err)
+    return { success: false, error: err.message || 'Failed to send batch emails' }
+  }
+})
+
 export const Route = createFileRoute('/')({ component: RouteComponent })
 
 function RouteComponent() {
@@ -66,6 +102,27 @@ function RouteComponent() {
         }, 4000)
       } else {
         alert(`Failed to send email: ${res.error}`)
+      }
+    } catch (error: any) {
+      console.error('Submission error:', error)
+      alert('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSendBulk = async () => {
+    if (loading) return
+    setLoading(true)
+    try {
+      const res = await sendBulkEmails()
+      if (res.success) {
+        setSubmitted(true)
+        setTimeout(() => {
+          setSubmitted(false)
+        }, 4000)
+      } else {
+        alert(`Failed to send bulk email: ${res.error}`)
       }
     } catch (error: any) {
       console.error('Submission error:', error)
@@ -130,6 +187,14 @@ function RouteComponent() {
               {loading ? 'Sending...' : submitted ? 'Sent' : 'Notify'}
             </button>
           </form>
+          <button
+            {...{ placeholder: 'Send Bulk Email' }}
+            onClick={handleSendBulk}
+            disabled={loading || submitted}
+            className="h-9 w-full rounded-lg border border-zinc-800 bg-zinc-900/30 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Sending...' : submitted ? 'Sent' : 'Send Bulk Email'}
+          </button>
         </div>
       </div>
 
