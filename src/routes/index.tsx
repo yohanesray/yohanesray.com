@@ -77,6 +77,47 @@ const sendBulkEmails = createServerFn({ method: 'POST' }).handler(async () => {
   }
 })
 
+const sendAttachmentEmail = createServerFn({ method: 'POST' }).handler(async () => {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.error('RESEND_API_KEY is not defined in environment variables')
+    return { success: false, error: 'Server misconfiguration' }
+  }
+
+  const resend = new Resend(apiKey)
+
+  try {
+    // @ts-ignore
+    const fs = await import('fs')
+    // @ts-ignore
+    const path = await import('path')
+    const filePath = path.join(process.cwd(), 'public', 'attachment.png')
+    const fileContent = fs.readFileSync(filePath).toString('base64')
+
+    const { error } = await resend.emails.send({
+      from: 'Yohanes Ray <me@mail.yohanesray.com>',
+      to: 'febri@shorj.com',
+      subject: 'Here is your attachment!',
+      text: 'Please find the attachment file below.',
+      attachments: [
+        {
+          filename: 'attachment.png',
+          content: fileContent,
+        },
+      ],
+    })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    console.error('Error sending attachment email:', err)
+    return { success: false, error: err.message || 'Failed to send email' }
+  }
+})
+
 export const Route = createFileRoute('/')({ component: RouteComponent })
 
 function RouteComponent() {
@@ -123,6 +164,27 @@ function RouteComponent() {
         }, 4000)
       } else {
         alert(`Failed to send bulk email: ${res.error}`)
+      }
+    } catch (error: any) {
+      console.error('Submission error:', error)
+      alert('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSendAttachment = async () => {
+    if (loading) return
+    setLoading(true)
+    try {
+      const res = await sendAttachmentEmail()
+      if (res.success) {
+        setSubmitted(true)
+        setTimeout(() => {
+          setSubmitted(false)
+        }, 4000)
+      } else {
+        alert(`Failed to send attachment: ${res.error}`)
       }
     } catch (error: any) {
       console.error('Submission error:', error)
@@ -194,6 +256,14 @@ function RouteComponent() {
             className="h-9 w-full rounded-lg border border-zinc-800 bg-zinc-900/30 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Sending...' : submitted ? 'Sent' : 'Send Bulk Email'}
+          </button>
+          <button
+            {...{ placeholder: 'Send Attachment' }}
+            onClick={handleSendAttachment}
+            disabled={loading || submitted}
+            className="h-9 w-full rounded-lg border border-zinc-800 bg-zinc-900/30 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Sending...' : submitted ? 'Sent' : 'Send Attachment'}
           </button>
         </div>
       </div>
