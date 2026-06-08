@@ -118,12 +118,50 @@ const sendAttachmentEmail = createServerFn({ method: 'POST' }).handler(async () 
   }
 })
 
+const scheduleEmail = createServerFn({ method: 'POST' })
+  .inputValidator((minutes: unknown) => {
+    if (typeof minutes !== 'number') {
+      throw new Error('Invalid minutes value')
+    }
+    return minutes
+  })
+  .handler(async ({ data: minutes }) => {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      console.error('RESEND_API_KEY is not defined in environment variables')
+      return { success: false, error: 'Server misconfiguration' }
+    }
+
+    const resend = new Resend(apiKey)
+    const scheduledTime = new Date(Date.now() + 1000 * 60 * minutes).toISOString()
+
+    try {
+      const { error } = await resend.emails.send({
+        from: 'Yohanes Ray <me@mail.yohanesray.com>',
+        to: 'febri@shorj.com',
+        subject: `Scheduled Email (${minutes} min)`,
+        text: `Hi,\n\nThis is a dynamic email scheduled to be sent in ${minutes} minute(s).\n\nBest regards,\nYohanes Ray`,
+        scheduledAt: scheduledTime,
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (err: any) {
+      console.error('Error scheduling email:', err)
+      return { success: false, error: err.message || 'Failed to schedule email' }
+    }
+  })
+
 export const Route = createFileRoute('/')({ component: RouteComponent })
 
 function RouteComponent() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [scheduleMinutes, setScheduleMinutes] = useState(1)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -185,6 +223,27 @@ function RouteComponent() {
         }, 4000)
       } else {
         alert(`Failed to send attachment: ${res.error}`)
+      }
+    } catch (error: any) {
+      console.error('Submission error:', error)
+      alert('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleScheduleEmail = async () => {
+    if (loading) return
+    setLoading(true)
+    try {
+      const res = await scheduleEmail({ data: scheduleMinutes })
+      if (res.success) {
+        setSubmitted(true)
+        setTimeout(() => {
+          setSubmitted(false)
+        }, 4000)
+      } else {
+        alert(`Failed to schedule email: ${res.error}`)
       }
     } catch (error: any) {
       console.error('Submission error:', error)
@@ -265,6 +324,31 @@ function RouteComponent() {
           >
             {loading ? 'Sending...' : submitted ? 'Sent' : 'Send Attachment'}
           </button>
+          <div className="flex w-full items-center gap-2">
+            <select
+              value={scheduleMinutes}
+              onChange={(e) => setScheduleMinutes(Number(e.target.value))}
+              className="h-9 rounded-lg border border-zinc-800 bg-[#0f0f12] px-2 text-sm text-zinc-400 focus:border-zinc-700 outline-none transition-colors cursor-pointer"
+            >
+              <option value={1} className="bg-zinc-950">
+                1 min
+              </option>
+              <option value={3} className="bg-zinc-950">
+                3 min
+              </option>
+              <option value={5} className="bg-zinc-950">
+                5 min
+              </option>
+            </select>
+            <button
+              {...{ placeholder: 'Schedule Email' }}
+              onClick={handleScheduleEmail}
+              disabled={loading || submitted}
+              className="h-9 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/30 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Scheduling...' : submitted ? 'Scheduled' : 'Schedule Email'}
+            </button>
+          </div>
         </div>
       </div>
 
