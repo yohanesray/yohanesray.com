@@ -83,9 +83,11 @@ export const Route = createFileRoute('/api/webhook')({
             ? ` | Reason: ${event.data.bounce.message}`
             : event.data?.click?.url
               ? ` | Clicked: ${event.data.click.url}`
-              : event.data?.error?.message
-                ? ` | Error: ${event.data.error.message}`
-                : ''
+              : event.type === 'email.opened'
+                ? ' | Opened'
+                : event.data?.error?.message
+                  ? ` | Error: ${event.data.error.message}`
+                  : ''
 
           console.log(
             `[Webhook] Event: ${event.type} | Email ID: ${event.data?.email_id || 'N/A'} | To: ${toStr}${subjectStr}${extraStr}`,
