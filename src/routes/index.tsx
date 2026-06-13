@@ -5,6 +5,24 @@ import { Resend } from 'resend'
 
 declare const process: any
 
+// Helper functions for Resend client and local attachment reading on server side
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not defined in environment variables')
+  }
+  return new Resend(apiKey)
+}
+
+async function getBase64Attachment() {
+  // @ts-ignore
+  const fs = await import('fs')
+  // @ts-ignore
+  const path = await import('path')
+  const filePath = path.join(process.cwd(), 'public', 'attachment.png')
+  return fs.readFileSync(filePath).toString('base64')
+}
+
 // Server function running securely on the backend (Vercel serverless)
 const sendNotificationEmail = createServerFn({ method: 'POST' })
   .inputValidator((email: unknown) => {
@@ -14,15 +32,8 @@ const sendNotificationEmail = createServerFn({ method: 'POST' })
     return email
   })
   .handler(async ({ data: email }) => {
-    const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) {
-      console.error('RESEND_API_KEY is not defined in environment variables')
-      return { success: false, error: 'Server misconfiguration' }
-    }
-
-    const resend = new Resend(apiKey)
-
     try {
+      const resend = getResendClient()
       const { error } = await resend.emails.send({
         from: 'Yohanes Ray <me@mail.yohanesray.com>',
         to: email,
@@ -30,10 +41,7 @@ const sendNotificationEmail = createServerFn({ method: 'POST' })
         text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
       })
 
-      if (error) {
-        return { success: false, error: error.message }
-      }
-
+      if (error) return { success: false, error: error.message }
       return { success: true }
     } catch (err: any) {
       console.error('Error sending email:', err)
@@ -42,34 +50,24 @@ const sendNotificationEmail = createServerFn({ method: 'POST' })
   })
 
 const sendBulkEmails = createServerFn({ method: 'POST' }).handler(async () => {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.error('RESEND_API_KEY is not defined in environment variables')
-    return { success: false, error: 'Server misconfiguration' }
-  }
-
-  const resend = new Resend(apiKey)
-
   try {
+    const resend = getResendClient()
     const { error } = await resend.batch.send([
+      {
+        from: 'Yohanes Ray <me@mail.yohanesray.com>',
+        to: 'annes@gmail.com',
+        subject: 'Thank you for connecting!',
+        text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
+      },
       {
         from: 'Yohanes Ray <me@mail.yohanesray.com>',
         to: 'annessilitonga21@gmail.com',
         subject: 'Thank you for connecting!',
         text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
       },
-      {
-        from: 'Yohanes Ray <me@mail.yohanesray.com>',
-        to: 'febri@shorj.com',
-        subject: 'Thank you for connecting!',
-        text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
-      },
     ])
 
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
+    if (error) return { success: false, error: error.message }
     return { success: true }
   } catch (err: any) {
     console.error('Error sending batch emails:', err)
@@ -78,25 +76,13 @@ const sendBulkEmails = createServerFn({ method: 'POST' }).handler(async () => {
 })
 
 const sendAttachmentEmail = createServerFn({ method: 'POST' }).handler(async () => {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.error('RESEND_API_KEY is not defined in environment variables')
-    return { success: false, error: 'Server misconfiguration' }
-  }
-
-  const resend = new Resend(apiKey)
-
   try {
-    // @ts-ignore
-    const fs = await import('fs')
-    // @ts-ignore
-    const path = await import('path')
-    const filePath = path.join(process.cwd(), 'public', 'attachment.png')
-    const fileContent = fs.readFileSync(filePath).toString('base64')
+    const resend = getResendClient()
+    const fileContent = await getBase64Attachment()
 
     const { error } = await resend.emails.send({
       from: 'Yohanes Ray <me@mail.yohanesray.com>',
-      to: 'febri@shorj.com',
+      to: 'annessilitonga21@gmail.com',
       subject: 'Here is your attachment!',
       text: 'Please find the attachment file below.',
       attachments: [
@@ -107,10 +93,7 @@ const sendAttachmentEmail = createServerFn({ method: 'POST' }).handler(async () 
       ],
     })
 
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
+    if (error) return { success: false, error: error.message }
     return { success: true }
   } catch (err: any) {
     console.error('Error sending attachment email:', err)
@@ -126,34 +109,52 @@ const scheduleEmail = createServerFn({ method: 'POST' })
     return minutes
   })
   .handler(async ({ data: minutes }) => {
-    const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) {
-      console.error('RESEND_API_KEY is not defined in environment variables')
-      return { success: false, error: 'Server misconfiguration' }
-    }
-
-    const resend = new Resend(apiKey)
-    const scheduledTime = new Date(Date.now() + 1000 * 60 * minutes).toISOString()
-
     try {
+      const resend = getResendClient()
+      const scheduledTime = new Date(Date.now() + 1000 * 60 * minutes).toISOString()
+
       const { error } = await resend.emails.send({
         from: 'Yohanes Ray <me@mail.yohanesray.com>',
-        to: 'febri@shorj.com',
+        to: 'annessilitonga21@gmail.com',
         subject: `Scheduled Email (${minutes} min)`,
         text: `Hi,\n\nThis is a dynamic email scheduled to be sent in ${minutes} minute(s).\n\nBest regards,\nYohanes Ray`,
         scheduledAt: scheduledTime,
       })
 
-      if (error) {
-        return { success: false, error: error.message }
-      }
-
+      if (error) return { success: false, error: error.message }
       return { success: true }
     } catch (err: any) {
       console.error('Error scheduling email:', err)
       return { success: false, error: err.message || 'Failed to schedule email' }
     }
   })
+
+const sendInlineImageEmail = createServerFn({ method: 'POST' }).handler(async () => {
+  try {
+    const resend = getResendClient()
+    const fileContent = await getBase64Attachment()
+
+    const { error } = await resend.emails.send({
+      from: 'Yohanes Ray <me@mail.yohanesray.com>',
+      to: 'annessilitonga21@gmail.com',
+      subject: 'Inline Image Email (CID)',
+      html: '<p>Below is our logo embedded inline using a CID attachment:</p><img src="cid:logo-image" alt="Embedded Logo" />',
+      attachments: [
+        {
+          content: fileContent,
+          filename: 'attachment.png',
+          contentId: 'logo-image',
+        },
+      ],
+    })
+
+    if (error) return { success: false, error: error.message }
+    return { success: true }
+  } catch (err: any) {
+    console.error('Error sending inline image email:', err)
+    return { success: false, error: err.message || 'Failed to send email' }
+  }
+})
 
 export const Route = createFileRoute('/')({ component: RouteComponent })
 
@@ -163,94 +164,49 @@ function RouteComponent() {
   const [loading, setLoading] = useState(false)
   const [scheduleMinutes, setScheduleMinutes] = useState(1)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const executeEmailAction = async (
+    actionFn: () => Promise<{ success: boolean; error?: string }>,
+    onSuccess?: () => void,
+  ) => {
+    if (loading) return
+    setLoading(true)
+    try {
+      const res = await actionFn()
+      if (res.success) {
+        setSubmitted(true)
+        onSuccess?.()
+        setTimeout(() => setSubmitted(false), 4000)
+      } else {
+        alert(`Failed: ${res.error}`)
+      }
+    } catch (error: any) {
+      console.error('Submission error:', error)
+      alert('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || loading) return
-
-    setLoading(true)
-    try {
-      const res = await sendNotificationEmail({ data: email })
-
-      if (res.success) {
-        setSubmitted(true)
-        setEmail('')
-
-        // Reset success message after 4 seconds
-        setTimeout(() => {
-          setSubmitted(false)
-        }, 4000)
-      } else {
-        alert(`Failed to send email: ${res.error}`)
-      }
-    } catch (error: any) {
-      console.error('Submission error:', error)
-      alert('An unexpected error occurred. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    if (!email) return
+    void executeEmailAction(
+      () => sendNotificationEmail({ data: email }),
+      () => setEmail(''),
+    )
   }
 
-  const handleSendBulk = async () => {
-    if (loading) return
-    setLoading(true)
-    try {
-      const res = await sendBulkEmails()
-      if (res.success) {
-        setSubmitted(true)
-        setTimeout(() => {
-          setSubmitted(false)
-        }, 4000)
-      } else {
-        alert(`Failed to send bulk email: ${res.error}`)
-      }
-    } catch (error: any) {
-      console.error('Submission error:', error)
-      alert('An unexpected error occurred. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+  const handleSendBulk = () => {
+    void executeEmailAction(sendBulkEmails)
   }
-
-  const handleSendAttachment = async () => {
-    if (loading) return
-    setLoading(true)
-    try {
-      const res = await sendAttachmentEmail()
-      if (res.success) {
-        setSubmitted(true)
-        setTimeout(() => {
-          setSubmitted(false)
-        }, 4000)
-      } else {
-        alert(`Failed to send attachment: ${res.error}`)
-      }
-    } catch (error: any) {
-      console.error('Submission error:', error)
-      alert('An unexpected error occurred. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+  const handleSendAttachment = () => {
+    void executeEmailAction(sendAttachmentEmail)
   }
-
-  const handleScheduleEmail = async () => {
-    if (loading) return
-    setLoading(true)
-    try {
-      const res = await scheduleEmail({ data: scheduleMinutes })
-      if (res.success) {
-        setSubmitted(true)
-        setTimeout(() => {
-          setSubmitted(false)
-        }, 4000)
-      } else {
-        alert(`Failed to schedule email: ${res.error}`)
-      }
-    } catch (error: any) {
-      console.error('Submission error:', error)
-      alert('An unexpected error occurred. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+  const handleScheduleEmail = () => {
+    void executeEmailAction(() => scheduleEmail({ data: scheduleMinutes }))
+  }
+  const handleSendInlineImage = () => {
+    void executeEmailAction(sendInlineImageEmail)
   }
 
   return (
@@ -349,6 +305,14 @@ function RouteComponent() {
               {loading ? 'Scheduling...' : submitted ? 'Scheduled' : 'Schedule Email'}
             </button>
           </div>
+          <button
+            {...{ placeholder: 'Send Inline Image' }}
+            onClick={handleSendInlineImage}
+            disabled={loading || submitted}
+            className="h-9 w-full rounded-lg border border-zinc-800 bg-zinc-900/30 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Sending...' : submitted ? 'Sent' : 'Send Inline Image'}
+          </button>
         </div>
       </div>
 
