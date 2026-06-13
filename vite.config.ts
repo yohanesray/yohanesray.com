@@ -8,6 +8,7 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   server: {
     port: 7331,
+    allowedHosts: ['.ngrok-free.dev'],
   },
   plugins: [tailwindcss(), tanstackStart(), nitro(), viteReact()],
 })

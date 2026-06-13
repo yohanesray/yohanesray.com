@@ -35,7 +35,7 @@ const sendNotificationEmail = createServerFn({ method: 'POST' })
     try {
       const resend = getResendClient()
       const { error } = await resend.emails.send({
-        from: 'Yohanes Ray <me@mail.yohanesray.com>',
+        from: 'Yohanes Ray <me@links.mail.yohanesray.com>',
         to: email,
         subject: 'Thank you for connecting!',
         text: `Hi,\n\nThank you for signing up to get notified! I will keep you updated on the progress of yohanesray.com.\n\nBest regards,\nYohanes Ray`,
