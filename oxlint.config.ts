@@ -19,5 +19,5 @@ export default defineConfig({
     typeAware: true,
     typeCheck: true,
   },
-  ignorePatterns: ['routeTree.gen.ts'],
+  ignorePatterns: ['dist/**', '.astro/**'],
 })

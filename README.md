@@ -1,23 +1,29 @@
-Welcome to your new TanStack Start app!
+# yohanesray.com
 
-# Prerequisites
+Static site built with [Astro](https://astro.build/) and Tailwind CSS.
+
+## Prerequisites
 
 - [Bun](https://bun.sh/) v1.x
 
-# Getting Started
+## Getting started
 
 ```bash
 bun install
 bun run dev
 ```
 
-# Building For Production
+Dev server: [http://localhost:7331/](http://localhost:7331/)
+
+## Production build
 
 ```bash
 bun run build
+bun run preview
 ```
 
-# Learn More
+Deploy the `dist/` directory to your host.
 
-- [TanStack Start docs](https://tanstack.com/start)
-- [TanStack Router docs](https://tanstack.com/router)
+## Learn more
+
+- [Astro documentation](https://docs.astro.build/)

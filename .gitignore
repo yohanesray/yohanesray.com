@@ -1,17 +1,30 @@
 # Finder (MacOS) folder config
 .DS_Store
 
-# dependencies (bun install)
-node_modules
+# dependencies
+node_modules/
 
 # build output
-.output
-dist
+dist/
+.output/
+
+# generated types
+.astro/
 
 # env
 .env
+.env.production
 *.local
 
-# cache
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# cache / legacy
 .tanstack
 data/webhooks.jsonl
+
+# jetbrains setting folder
+.idea/

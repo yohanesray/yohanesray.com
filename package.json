@@ -1,11 +1,13 @@
 {
   "name": "yohanesray",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "lint": "oxlint",
@@ -13,31 +15,25 @@
     "postinstall": "bunx --bun simple-git-hooks"
   },
   "dependencies": {
-    "@tailwindcss/vite": "4.3.0",
-    "@tanstack/react-router": "1.170.41",
-    "@tanstack/react-start": "1.168.60",
-    "oxlint-tsgolint": "0.23.0",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "tailwindcss": "4.3.0"
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.4.2",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.2",
     "nano-staged": "1.0.2",
-    "nitro": "^3.0.260603-beta",
     "oxfmt": "0.50.0",
     "oxlint": "1.65.0",
-    "simple-git-hooks": "2.13.1",
-    "typescript": "6.0.3",
-    "vite": "8.0.13"
+    "oxlint-tsgolint": "0.23.0",
+    "simple-git-hooks": "2.13.1"
   },
   "simple-git-hooks": {
     "pre-commit": "./node_modules/.bin/nano-staged"
   },
   "nano-staged": {
     "*": "bun run fmt --no-error-on-unmatched-pattern",
-    "*.{js,jsx,ts,tsx,mjs,cjs}": "bun run lint:fix"
+    "*.{js,jsx,ts,tsx,mjs,cjs,astro}": "bun run lint:fix"
+  },
+  "engines": {
+    "node": ">=22.23.4"
   }
 }
